@@ -4,6 +4,3 @@
 [submodule "RP2040-Pico-RTC"]
 	path = RP2040-Pico-RTC
 	url = https://github.com/infonick/RP2040-Pico-RTC.git
-[submodule "micropython-lib"]
-	path = micropython-lib
-	url = https://github.com/micropython/micropython-lib.git
