@@ -1,6 +1,6 @@
 [submodule "PicoDHT22"]
-	path = PicoDHT22
+	path = Pico Code/PicoDHT22
 	url = https://github.com/danjperron/PicoDHT22.git
 [submodule "RP2040-Pico-RTC"]
-	path = RP2040-Pico-RTC
+	path = Pico Code/RP2040-Pico-RTC
 	url = https://github.com/infonick/RP2040-Pico-RTC.git
