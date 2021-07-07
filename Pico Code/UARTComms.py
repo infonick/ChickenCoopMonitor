@@ -95,6 +95,9 @@ class UARTComms():
         Returns a boolean True if there are Lossless packets that have been
         sent and no Ack has been received to confirm their successful
         transmission.
+    
+    sendBreak():
+        Sends a UART break. Helps to syncronize communications.
         
     lastRXTime():
         Returns the timestamp of the last received transmission. Useful with
@@ -160,7 +163,7 @@ class UARTComms():
     __SYSTEM_ID = ''
     __DEFAULT_SERIAL_PORT_ID = 0
     
-    UART_BAUDRATE = 115_200
+    UART_BAUDRATE = 57_600
     UART_BITS = 8
     UART_STOPBITS = 1
     UART_PARITY = 1     # 0, 1, or None
@@ -308,8 +311,10 @@ class UARTComms():
                      data from one packet.
         """
         buffSize = self.__getIncommingBufferSize()
+        # print("{} -> {}".format(buffSize, len(self.receiveBuffer)))
         self.receiveBuffer += self.uart.read(buffSize)
-        
+        # print("aft: {}".format(len(self.receiveBuffer)))
+        # print('pkt: {}'.format(self.receiveBuffer))
         receiveData = []
         totalBytesReceived = 0
         processingBuffer = True
@@ -326,6 +331,7 @@ class UARTComms():
                 break
             
             nextPacketLength = int.from_bytes(self.receiveBuffer[7:9], 'little')
+            # print('pkt lngth: {}'.format(nextPacketLength))
             
             if len(self.receiveBuffer) < nextPacketLength:
                 processingBuffer = False
@@ -386,9 +392,21 @@ class UARTComms():
         
         if pktType in ['Lossless', 'Connection Test']:
             self.outboundPackets[str(seqNum)] = [pktType, pktData, time()] 
+        
+        self.sendBreak()
 
         return self.uart.write(msg)
     
+
+    def sendBreak(self):
+        """
+        Sends a UART break. Helps to syncronize communications.
+        """
+        if self.__SYSTEM_ID == 'PiZero':
+            self.uart.send_break() 
+        elif self.__SYSTEM_ID == 'PiPico':
+            self.uart.sendbreak()
+         
     
     def __updateRXTime(self):
         """Updates the timestamp of the last received transmission."""
@@ -493,7 +511,11 @@ class UARTComms():
         if pktType not in self.PACKET_TYPES:
             raise ValueError('Message type not valid.')
         
-        pktData = pktData.encode()
+        try:
+            pktData = pktData.encode()
+        except:
+            raise
+
         length = self.__PACKET_HEADER_SIZE + len(pktData)
         
         if length > self.MAX_PACKET_SIZE:
@@ -527,6 +549,7 @@ class UARTComms():
               
         ≡≡≡ Raises ≡≡≡
         TypeError:   if the supplied parameter type is not correct
+        ValueError:  if supplied parameter \'msg\' is too small to be decoded.
         PacketError: if the packet is somehow malformed or otherwise fails to
                      validate the transmission checksum.
         
@@ -537,7 +560,9 @@ class UARTComms():
         """
         if not isinstance(msg, bytes):
             raise TypeError("\'msgBytes\' must be of type \'bytes\'.")
-        
+        if len(msg) < self.__PACKET_HEADER_SIZE:
+            raise ValueError("Supplied parameter \'msg\' is too small to " + 
+                             "be decoded.")
         startSeq = msg[0:3]
         cSum = msg[3:7]
         cSumMsg = msg[7:]
@@ -545,7 +570,12 @@ class UARTComms():
         seqNum = int.from_bytes(msg[9:11], 'little')
         pktType = self.PACKET_TYPES[int.from_bytes(msg[11:12], 'little')]
         if len(msg) > self.__PACKET_HEADER_SIZE:
-            pktData = msg[12:].decode()
+            try:
+                pktData = msg[12:].decode()
+            except UnicodeDecodeError:
+                raise PacketError('Packet is malformed.')
+            except UnicodeError:
+                raise PacketError('Packet is malformed.')
         else:
             pktData = ''
         

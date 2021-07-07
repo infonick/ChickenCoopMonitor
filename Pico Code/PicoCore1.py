@@ -38,11 +38,8 @@ import json
 import utime
 
 
-
 from RP2040_RTC import rp2RTC
 import Event
-# import GPIOConfig
-# import AiLib
 
 
 uart = UARTComms()
@@ -51,39 +48,6 @@ loopTime = 0
 lastTimeUpdate = 0
 lastTimeUpdateRequest = 0
 
-# sensorDict = {}
-# for sensor in GPIOConfig.sensors:
-#     if sensor['name'] in list(sensorDict.keys()):
-#         raise ValueError("Two of the items in list \'sensors\' have " +
-#                          "the same name. All sensors are required to " + 
-#                          "have unique names.")
-#     
-#     s = AiLib.Sensor(sensor['pinNum'],
-#                      sensor['pinMode'],
-#                      name = sensor['name'],
-#                      gpioInType = sensor['gpioInType'],
-#                      irq = sensor['irq'],
-#                      driver = sensor['driver'],
-#                      convFactorADC = sensor['convFactorADC']
-#                      )
-#     
-#     sensorDict[s.getName()] = s
-# 
-# 
-# actuatorDict = {}
-# for actuator in GPIOConfig.actuators:
-#     if actuator['name'] in list(actuatorDict.keys()):
-#         raise ValueError("Two of the items in list \'actuators\' have " +
-#                          "the same name. All actuators are required to " + 
-#                          "have unique names.")
-#     
-#     a = AiLib.Actuator(actuator['pinNum'],
-#                        name = actuator['name'],
-#                        gpioOutInitValue = actuator['gpioOutInitValue'],
-#                        reverseStates = actuator['reverseStates']
-#                        )
-#     
-#     actuatorDict[a.getName()] = a
 
 
 def TimeUpdate(timeResponse):
@@ -99,6 +63,8 @@ def TimeUpdate(timeResponse):
         lastTimeUpdate = timeResponse
         # update timestamps for any pending messages, logs, etc. <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
         # load pending messages into UARTmsgs.outboundQueue <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+    else:
+        lastTimeUpdate = timeResponse
 
 def SendTimeUpdateRequest():
     """
@@ -115,79 +81,111 @@ def SendTimeUpdateRequest():
 
 
 
-
 # ≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡
 # Main program loop
 # ≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡≡
 
-def PicoCore1():
+def PicoCore1(sensorDict, actuatorDict):
     global loopTime
     global lastTimeUpdate
-    
-    while True:
-        activity = False
-        
-        # Check that Pico RTC is on-time once per day
-        if abs(lastTimeUpdate - utime.time()) > 86_400):
-            SendTimeUpdateRequest()
-        
-        
-        # Check for events to send out over UART
-        if len(Event.Event.eventQueue) > 0:
-            activity = True
-            for i in range(len(Event.Event.eventQueue)):
-                e = Event.Event.eventQueue.popleft()
-                uart.send('Lossless', json.dumps(['event',
-                                                  e.getJson()]
-                                                 )
-                          )
-                print('Event: {}; {}; {}'.format(e.getEventType(),
-                                                 e.getEventDetails(),
-                                                 e.getEventTime()
-                                                 )
-                      )
-        
-        
-        # Periodically send sensor and acutator states out over UART
-        if abs(loopTime - utime.time()) >= 1:
-            loopTime = utime.time()
-            activity = True
-            msg = {}
+    global lastTimeUpdateRequest
+    global uart
+
+    try:
+        while True:
+            gc.collect()
+            activity = False
             
-            for s in sensorDict.keys():
-                msg[str(sensorDict[s].getGPIOPin())] = sensorDict[s].getState()
-            for a in actuatorDict.keys():
-                msg[str(actuatorDict[a].getGPIOPin())] = actuatorDict[a].getState()
+            # Check that Pico RTC is on-time once per day
+            if abs(lastTimeUpdate - utime.time()) > 86_400:
+                SendTimeUpdateRequest()
             
-            sent = uart.send('Lossy', json.dumps(['state', msg]))
-        
-        
-        # Receive and process any incomming packets from UART
-        if uart.receivePacketsWaiting():
-            activity = True
-            receiveData = uart.receive()
             
-            for packetData in receiveData:
-                data = json.loads(packetData)
-                
-                if data[0] == 'Time Response':
-                    TimeUpdate(data[1])
-                else:
-                    # Other data types can be handled here. <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
-                    print('Received: {}'.format(packetData))
-        
-        
-        # Resend any 'Lossless' packets that have not received an 'Ack'
-        if uart.losslessPacketsWaiting():
-            bytesOut = uart.resendLosslessPackets()
-            if bytesOut > 0:
-                print('losslessPacketsWaiting bytesOut: {}'.format(bytesOut))
+            # Check for events to send out over UART
+            if len(Event.Event.eventQueue) > 0:
                 activity = True
-        
-        
-        # Sleep for an appropriate amount of time
-        if activity:
-            utime.sleep(5/1000)
-        else:
-            utime.sleep(250/1000)
-    
+                for i in range(len(Event.Event.eventQueue)):
+                    e = Event.Event.eventQueue.popleft()
+                    uart.send('Lossless', json.dumps(['event',
+                                                      e.getDict()]
+                                                     )
+                              )
+                    print('Event: {}; {}; {}'.format(e.getEventType(),
+                                                     e.getEventDetails(),
+                                                     e.getEventTime()
+                                                     )
+                          )
+            
+                        
+            
+            # Periodically send sensor and acutator states out over UART
+            if abs(loopTime - utime.time()) > 1:
+                loopTime = utime.time()
+                activity = True
+                msg = {}
+                
+                for s in sensorDict.keys():
+                    if isinstance(sensorDict[s].getState(), dict):
+                        name = str(sensorDict[s].getName())
+                        state = sensorDict[s].getState()
+                        for subState in state:
+                            msg[name + ' ' + subState] = state[subState]
+                    else:
+                        msg[str(sensorDict[s].getName())] = sensorDict[s].getState()
+                
+                for a in actuatorDict.keys():
+                    if actuatorDict[a].getGPIOPin() in range(16,18):
+                        msg[str(actuatorDict[a].getName())] = actuatorDict[a].getState()
+
+                uart.send('Lossy', json.dumps(['state', msg]))
+
+            
+            
+            # Receive and process any incomming packets from UART
+            if uart.receivePacketsWaiting():
+                activity = True
+                receiveData = uart.receive()
+                for packetData in receiveData:
+                    data = json.loads(packetData)
+                    
+                    if data[0] == 'Time Response':
+                        TimeUpdate(data[1])
+                    else:
+                        # Other data types can be handled here. <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+                        print('Received: {}'.format(packetData))
+            
+            
+            # Resend any 'Lossless' packets that have not received an 'Ack'
+            if uart.losslessPacketsWaiting():
+                bytesOut = uart.resendLosslessPackets()
+                if bytesOut > 0:
+                    activity = True
+            
+            
+            # Sleep for an appropriate amount of time
+            if activity:
+                utime.sleep(5/1000)
+            else:
+                utime.sleep(250/1000)
+
+    except Exception as e:
+        file = open("ErrorLogCore1.txt", "a")
+        file.write(str(e) + "\n\n")
+        file.flush()
+        file.close()
+        raise
+
+    finally:
+        from time import sleep
+        from machine import Pin
+        from machine import PWM
+
+        # An LED frequency of 637hz is well above what chickens can percieve
+        # and so will not appear as a flickering light to them.
+        led = PWM(Pin(25))
+        led.freq(637)
+        while True:
+            led.duty_u16(2**15)
+            sleep(1)
+            led.duty_u16(2**13)
+            sleep(1)

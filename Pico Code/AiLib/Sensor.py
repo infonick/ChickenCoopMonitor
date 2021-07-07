@@ -29,6 +29,7 @@ from micropython import schedule
 from utime import sleep_ms
 from utime import localtime
 from utime import mktime
+from utime import time
 from machine import Pin
 from machine import ADC
 # from _thread import allocate_lock
@@ -152,6 +153,8 @@ class Sensor(GPIO):
                                          gpioInType='up',
                                          stateMachineID = 0)
             self._driver = driver.lower()
+            self._lastReading = None
+            self._lastReadingTime = 0
             self._driverObj = DHT22(dataPin = self._sensor,
                                     powerPin = None,
                                     dht11 = False,
@@ -164,7 +167,7 @@ class Sensor(GPIO):
                                   " is already assigned.")
             super(Sensor, self,).__init__(pinNum=pinNum,
                                          pinMode='gpio-in',
-                                         name=(name+'_s1'),
+                                         name=(name),
                                          gpioInType=gpioInType)
             sensor1 = GPIO(pinNum = (pinNum+1), pinMode = 'gpio-in', name = (name+'_s1'), gpioInType = 'down')
             
@@ -278,36 +281,46 @@ class Sensor(GPIO):
         For GPIO inputs:  int or 0 or 1 representing a low/high state
         For ADC sensors:  return type is dependent on the conversion factor lambda
         For DHT22 driver: a dict of {'temp':temp, 'rh':rh} is returned
+        
+        
         """
-        if self._driver == 'dht22':
-            self.__accessLock.acquire()
-            try:
-                for i in range(5):
-                    temp, rh = self._driverObj.read()
-                    if temp is not None and rh is not None:
-                        return {'temp':temp, 'rh':rh}
-                    # Try again in a bit - the sensor can't cope with a shorter delay
-                    sleep_ms(500)
-                raise InoperativeSensorException("DHT22 sensor \'" +
-                                                 str(self._name) +
-                                                 "\' on " +
-                                                 str(self._pinMode) + "_" +
-                                                 str(self._pin) +
-                                                 " is not responding.")
-            except:
-                raise
-            finally:
-                self.__accessLock.release()
+        self.__accessLock.acquire()
+        try:
+            if self._driver == 'dht22':
+                # Realistically, this device should not be read more than once
+                # every two seconds.
+                if abs(time() - self._lastReadingTime) <= 2:
+                    return self._lastReading 
+                else:
+                    for i in range(5):
+                        temp, rh = self._driverObj.read()
+                        if temp is not None and rh is not None:
+                            self._lastReading = {'Temperature':temp, 'Relative Humidity':rh}
+                            self._lastReadingTime = time()
+                            return self._lastReading 
+                        # Try again in a bit - the sensor can't cope with a shorter delay
+                        sleep_ms(500)
+                    raise InoperativeSensorException("DHT22 sensor \'" +
+                                                     str(self._name) +
+                                                     "\' on " +
+                                                     str(self._pinMode) + "_" +
+                                                     str(self._pin) +
+                                                     " is not responding.")
         
-        elif self._driver == 'slidingdoor':
-            return self._driverObj.getState()
-        
-        elif self._pinMode == 'gpio-in':
-            return super(Sensor, self).getState()
-        
-        elif self._pinMode == 'adc-in':
-            return self._convFactorADC(super(Sensor, self).getState())
-        
+            elif self._driver == 'slidingdoor':
+                return self._driverObj.getState()
+            
+            elif self._pinMode == 'gpio-in':
+                return super(Sensor, self).getState()
+            
+            elif self._pinMode == 'adc-in':
+                return self._convFactorADC(super(Sensor, self).getState())
+    
+        except:
+            raise
+        finally:
+            self.__accessLock.release()
+
         
     def enableIRQ(self):
         """Registers an IRQ for a sensor.""" 

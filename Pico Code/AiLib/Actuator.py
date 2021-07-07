@@ -203,21 +203,22 @@ class Actuator(GPIO):
         self.__accessLock.acquire()
         try:
             stateInt = super(Actuator, self).getState()
+
+            
+            if self._reverseStates:
+                if stateInt == 0:
+                    stateInt = 1
+                elif stateInt == 1:
+                    stateInt = 0
+            
+            if asString:
+                return str(self.__gpioOutInitValueTypeNames[stateInt])
+            else:
+                return stateInt
         except:
             raise
         finally:
             self.__accessLock.release()
-        
-        if self._reverseStates:
-            if stateInt == 0:
-                stateInt = 1
-            elif stateInt == 1:
-                stateInt = 0
-        
-        if asString:
-            return str(self.__gpioOutInitValueTypeNames[stateInt])
-        else:
-            return stateInt
     
     
     def setState(self, newState):

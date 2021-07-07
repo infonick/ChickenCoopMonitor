@@ -29,6 +29,11 @@ class Event():
     getJson():
         Returns a json string of a dictionary of event details in the format 
         {'eventType': e, 'time': t, 'details': d}
+    
+    getDict():
+        Returns a dictionary of event details in the format 
+        {'eventType': e, 'time': t, 'details': d}
+    
     """
     eventQueue = deque((), 100, 1)
     eventTypes = ['Agent Action',
@@ -100,7 +105,14 @@ class Event():
         Returns a json string of a dictionary of event details in the format 
         {'eventType': e, 'time': t, 'details': d}
         """
+        return dumps(self.getDict())
+    
+    def getDict(self):
+        """
+        Returns a dictionary of event details in the format 
+        {'eventType': e, 'time': t, 'details': d}
+        """
         out = {'eventType': self.getEventType(), 
                'time':self.getEventTime(asInt=True), 
                'details':self.getEventDetails()}
-        return dumps(out)
+        return out

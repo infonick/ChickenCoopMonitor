@@ -15,19 +15,19 @@
 
 # Tests for the unittest module itself
 #--------------------------------------
-#from .test_unittest import * 
+from .test_unittest import * 
 
 
 # Tests for the system code on PicoCore0
 #--------------------------------------
-# from .test_AiLib_GPIO import *
-# from .test_AiLib_Sensor import *
-# from .test_AiLib_Actuator import *
-# from .test_AiLib_Agent import *
-# from .test_AiLib_Environment import *
-# from .test_Event import *
+from .test_AiLib_GPIO import *
+from .test_AiLib_Sensor import *
+from .test_AiLib_Actuator import *
+from .test_AiLib_Agent import *
+from .test_AiLib_Environment import *
+from .test_Event import *
 
 
 # Tests for system components and configuration
 #--------------------------------------
-#from .test_GPIOConfig import *
+from .test_GPIOConfig import *

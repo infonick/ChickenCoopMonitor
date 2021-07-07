@@ -91,14 +91,39 @@ def PicoCore0():
     global actuatorDict
     global agentEnvironments
     
-    while True:
-        startTime = utime.ticks_ms()
-        
-        for agent in agentEnvironments.keys():
-            agentEnvironments[agent].run()
-        
-        stopTime = utime.ticks_ms()
-        runTime = utime.ticks_diff(stopTime, startTime)
-        if runTime < (agentRuntimeFrequencyInSeconds*1000):
-            sleeptime = (agentRuntimeFrequencyInSeconds*1000) - runTime
-            utime.sleep_ms(sleeptime)
+    try:
+        while True:
+            gc.collect()
+            startTime = utime.ticks_ms()
+            
+            for agent in agentEnvironments.keys():
+                agentEnvironments[agent].run()
+            
+            stopTime = utime.ticks_ms()
+            runTime = abs(utime.ticks_diff(stopTime, startTime))
+            if runTime < (agentRuntimeFrequencyInSeconds*1000):
+                sleeptime = (agentRuntimeFrequencyInSeconds*1000) - runTime
+                utime.sleep_ms(sleeptime)
+
+    except Exception as e:
+        file = open("ErrorLogCore0.txt", "a")
+        file.write(str(e) + "\n\n")
+        file.flush()
+        file.close()
+        raise
+
+    finally:
+        from time import sleep
+        from machine import Pin
+        from machine import PWM
+
+        # An LED frequency of 637hz is well above what chickens can percieve
+        # and so will not appear as a flickering light to them.
+        led = PWM(Pin(25))
+        led.freq(637)
+        while True:
+            led.duty_u16(2**15)
+            sleep(1)
+            led.duty_u16(2**13)
+            sleep(1)
+            
