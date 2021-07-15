@@ -1,6 +1,12 @@
+from usys import path
+if '/RP2040-Pico-RTC' not in path:
+    path.append('/RP2040-Pico-RTC')
+
+from machine import reset
 from time import time
 from UARTComms import UARTComms
 from os import uname
+from AiLib.Actuator import Actuator
 
 
 __UNAME_PICO = 'Raspberry Pi Pico with RP2040'
@@ -57,7 +63,7 @@ class UARTCommsWatchdog():
     MAX_RECOVERY_ATTEMPTS = 3
     
     
-    def __init__(self, UARTCommsObj):
+    def __init__(self, UARTCommsObj, alertLED):
         """
         Validates the parameter inputs for, and instantiates, a UARTComms Object.
         
@@ -74,10 +80,14 @@ class UARTCommsWatchdog():
         if not isinstance(UARTCommsObj, UARTComms):
             raise TypeError('The supplied parameter was not a UARTComms object.')
         
+        if not isinstance(alertLED, Actuator):
+            raise TypeError('The supplied parameter was not an Actuator object.')
+        
         self.uart = UARTCommsObj
         self.recoveryAttempts = 0
         self.timer = Timer()
         self.enable()
+        self.alertLED = alertLED
         
         
     def enable(self):
@@ -104,10 +114,11 @@ class UARTCommsWatchdog():
         needs to be triggered.
         """
         try:
-            if abs(self.uart.lastRXTime() - time()) >= (self.TIMER_PERIOD_MS/1_000):
+            if abs(self.uart.lastRXTime() - time()) >= (2 * self.TIMER_PERIOD_MS / 1_000):
                 schedule(UARTCommsWatchdog._irqHandler, self)
             else:
                 self.recoveryAttempts = 0
+                self.alertLED.setState('Off')
                 
         except RuntimeError:
             pass
@@ -125,6 +136,7 @@ class UARTCommsWatchdog():
         self.recoveryAttempts += 1
         if self.recoveryAttempts <= self.MAX_RECOVERY_ATTEMPTS:
             try:
+                self.uart.sendBreak()
                 self.uart.send('Connection Test', '')
             except:
                 raise
@@ -133,6 +145,12 @@ class UARTCommsWatchdog():
             # Implement Recovery Procedure here
             print("ERROR: UARTCommsWatchdog recovery attempts: " +
                   str(self.recoveryAttempts) )
-            # Process recovery actions <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+            if self.recoveryAttempts%5 == 0:
+                self.uart.initUART()
+                self.uart.resetBuffer()
             # Process user alert actions
+            self.alertLED.setState('On')
+            # Process recovery actions <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
+            if self.recoveryAttempts > 60:
+                reset()
             # Log the use of recovery actions

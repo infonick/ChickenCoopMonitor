@@ -165,7 +165,7 @@ class UARTComms():
     
     UART_BAUDRATE = 57_600
     UART_BITS = 8
-    UART_STOPBITS = 1
+    UART_STOPBITS = 2
     UART_PARITY = 1     # 0, 1, or None
     UART_TIMEOUT = 1
     UART_TXRXBUFFER = min(32_766, max(4096, MAX_PACKET_SIZE*2)) # Maximum ~32766 on Pi Pico
@@ -207,13 +207,24 @@ class UARTComms():
         ≡≡≡ Returns ≡≡≡
         UARTComms Object
         """
+        self.uartPortID = uartPortID
+        self.initUART()
+    
+        self.seqNumber = 0
+        self.outboundPackets = {}
+        self.receiveBuffer = b''
+        self.__updateRXTime()
+    
+    
+
+    def initUART(self):
         if self.__SYSTEM_ID == 'PiZero':
-            if uartPortID not in self.__SERIAL_PORT_ID_ZERO:
+            if self.uartPortID not in self.__SERIAL_PORT_ID_ZERO:
                 raise ValueError('\'uartPortID\' is not valid. Must be one of: '
                                  + str(self.__SERIAL_PORT_ID_ZERO)
                                  + '.')
             
-            self.uart = serial.Serial(uartPortID,
+            self.uart = serial.Serial(self.uartPortID,
                                       baudrate = self.UART_BAUDRATE, 
                                       parity = self.UART_PARITY, 
                                       stopbits = self.UART_STOPBITS, 
@@ -221,18 +232,18 @@ class UARTComms():
                                       timeout = self.UART_TIMEOUT)
             
         elif self.__SYSTEM_ID == 'PiPico':
-            if uartPortID not in self.__SERIAL_PORT_ID_PICO:
+            if self.uartPortID not in self.__SERIAL_PORT_ID_PICO:
                 raise ValueError('\'uartPortID\' is not valid.Must be one of: '
                                  + str(self.__SERIAL_PORT_ID_PICO)
                                  + '.')
         
-            self.uart = UART(uartPortID,
+            self.uart = UART(self.uartPortID,
                              baudrate = self.UART_BAUDRATE,
                              bits = self.UART_BITS,
                              parity = self.UART_PARITY,
                              stop = self.UART_STOPBITS,
-                             tx = self.UART_PICO_TX_PINS[uartPortID],
-                             rx = self.UART_PICO_RX_PINS[uartPortID],
+                             tx = self.UART_PICO_TX_PINS[self.uartPortID],
+                             rx = self.UART_PICO_RX_PINS[self.uartPortID],
                              txbuf = self.UART_TXRXBUFFER,
                              rxbuf = self.UART_TXRXBUFFER,
                              timeout = self.UART_TIMEOUT,
@@ -242,11 +253,8 @@ class UARTComms():
             raise UnsupportedSYSError('\'{}\''.format(uname()[4]) +
                                       ' is not supported by UARTComms.')
     
-        self.seqNumber = 0
-        self.outboundPackets = {}
+    def resetBuffer(self):
         self.receiveBuffer = b''
-        self.rxTime = time()
-    
     
     def __nextSeqNum(self):
         """
@@ -313,6 +321,10 @@ class UARTComms():
         buffSize = self.__getIncommingBufferSize()
         # print("{} -> {}".format(buffSize, len(self.receiveBuffer)))
         self.receiveBuffer += self.uart.read(buffSize)
+        
+        if len(self.receiveBuffer) > self.UART_TXRXBUFFER:
+            self.receiveBuffer = self.receiveBuffer[(self.UART_TXRXBUFFER * -1):]
+        
         # print("aft: {}".format(len(self.receiveBuffer)))
         # print('pkt: {}'.format(self.receiveBuffer))
         receiveData = []
@@ -333,6 +345,11 @@ class UARTComms():
             nextPacketLength = int.from_bytes(self.receiveBuffer[7:9], 'little')
             # print('pkt lngth: {}'.format(nextPacketLength))
             
+            if nextPacketLength > self.MAX_PACKET_SIZE:
+                print('Packet Error')
+                self.receiveBuffer = self.receiveBuffer[1:]
+                continue
+        
             if len(self.receiveBuffer) < nextPacketLength:
                 processingBuffer = False
                 break
@@ -341,6 +358,11 @@ class UARTComms():
                 try:
                     pktType, pktData, seqNum = self.__pktDecode(msg)
                 except PacketError:
+                    print('Packet Error')
+                    self.receiveBuffer = self.receiveBuffer[1:]
+                    continue
+                except ValueError:
+                    print('Packet Error')
                     self.receiveBuffer = self.receiveBuffer[1:]
                     continue
                 
@@ -410,6 +432,7 @@ class UARTComms():
     
     def __updateRXTime(self):
         """Updates the timestamp of the last received transmission."""
+        # print('update RXTime')
         self.rxTime = int(time())
     
     
@@ -418,6 +441,7 @@ class UARTComms():
         Returns the timestamp of the last received transmission. Useful with
         a watchdog process that monitors for regular successful activity.
         """
+        # print('{} / {}'.format(self.rxTime, time()))
         return self.rxTime
     
     
@@ -567,8 +591,24 @@ class UARTComms():
         cSum = msg[3:7]
         cSumMsg = msg[7:]
         length = int.from_bytes(msg[7:9], 'little')
+        
+        if length > self.MAX_PACKET_SIZE:
+            raise PacketError('Packet is malformed.')
+        if startSeq != self.__PACKET_START_SEQUENCE:
+            raise PacketError('Packet is malformed.')
+        if len(msg) != length:
+            raise PacketError('Packet is malformed.')
+        if cSum != self.__pktChecksum(cSumMsg):
+            raise PacketError('Packet is malformed.')
+        
         seqNum = int.from_bytes(msg[9:11], 'little')
-        pktType = self.PACKET_TYPES[int.from_bytes(msg[11:12], 'little')]
+        try:
+            pktType = self.PACKET_TYPES[int.from_bytes(msg[11:12], 'little')]
+        except:
+            raise PacketError('Packet is malformed.')
+        
+        pktData = ''
+        
         if len(msg) > self.__PACKET_HEADER_SIZE:
             try:
                 pktData = msg[12:].decode()
@@ -576,14 +616,5 @@ class UARTComms():
                 raise PacketError('Packet is malformed.')
             except UnicodeError:
                 raise PacketError('Packet is malformed.')
-        else:
-            pktData = ''
-        
-        if startSeq != self.__PACKET_START_SEQUENCE:
-            raise PacketError('Packet is malformed.')
-        if len(msg) != length:
-            raise PacketError('Packet is malformed.')
-        if cSum != self.__pktChecksum(cSumMsg):
-            raise PacketError('Packet is malformed.')
 
         return pktType, pktData, seqNum

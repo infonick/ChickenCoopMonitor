@@ -43,7 +43,6 @@ import Event
 
 
 uart = UARTComms()
-uartWatchdog = UARTCommsWatchdog(uart)
 loopTime = 0
 lastTimeUpdate = 0
 lastTimeUpdateRequest = 0
@@ -90,6 +89,8 @@ def PicoCore1(sensorDict, actuatorDict):
     global lastTimeUpdate
     global lastTimeUpdateRequest
     global uart
+    
+    uartWatchdog = UARTCommsWatchdog(uart, actuatorDict['Alert LED'])
 
     try:
         while True:
@@ -134,8 +135,8 @@ def PicoCore1(sensorDict, actuatorDict):
                         msg[str(sensorDict[s].getName())] = sensorDict[s].getState()
                 
                 for a in actuatorDict.keys():
-                    if actuatorDict[a].getGPIOPin() in range(16,18):
-                        msg[str(actuatorDict[a].getName())] = actuatorDict[a].getState()
+                    if actuatorDict[a].getGPIOPin() in [6,7,16,17]:
+                        msg[str(actuatorDict[a].getName())] = actuatorDict[a].getState(asString=True)
 
                 uart.send('Lossy', json.dumps(['state', msg]))
 
@@ -150,6 +151,10 @@ def PicoCore1(sensorDict, actuatorDict):
                     
                     if data[0] == 'Time Response':
                         TimeUpdate(data[1])
+                    elif data[0] == 'chickenDoorOpen':
+                        actuatorDict['Doorkeeper Override'].setState('on')
+                    elif data[0] == 'chickenDoorAuto':
+                        actuatorDict['Doorkeeper Override'].setState('off')
                     else:
                         # Other data types can be handled here. <<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<
                         print('Received: {}'.format(packetData))

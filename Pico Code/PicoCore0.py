@@ -32,6 +32,7 @@ if not gc.isenabled():
     gc.enable()
 
 import utime
+from machine import WDT
 
 import AiLib
 import GPIOConfig
@@ -91,8 +92,11 @@ def PicoCore0():
     global actuatorDict
     global agentEnvironments
     
+    aiWatchdog = WDT(0, (5 * agentRuntimeFrequencyInSeconds * 1000))
+    
     try:
         while True:
+            aiWatchdog.feed()
             gc.collect()
             startTime = utime.ticks_ms()
             

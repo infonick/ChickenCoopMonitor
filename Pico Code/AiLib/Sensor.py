@@ -106,7 +106,7 @@ class Sensor(GPIO):
     """
     __sensorPinModes = ['gpio-in', 'adc-in']
     __irqTypes = ['none', 'rising', 'falling', 'all']
-    __sensorDrivers = ['none', 'dht22', 'slidingdoor']    
+    __sensorDrivers = ['none', 'dht22', 'slidingdoor', 'binarydoor']    
     
 
     def __init__(self, pinNum, pinMode, name=None, gpioInType='down', irq='none', driver='none', convFactorADC=None):
@@ -182,6 +182,9 @@ class Sensor(GPIO):
                                          pinMode=pinMode,
                                          name=name,
                                          gpioInType=gpioInType)
+            if driver.lower() == 'binarydoor' and pinMode == 'gpio-in':
+                self._driver = driver.lower()
+                
         
         if self._pinMode == 'gpio-in' and self._driver == 'none':
             self._irq = irq.lower()
@@ -309,6 +312,10 @@ class Sensor(GPIO):
         
             elif self._driver == 'slidingdoor':
                 return self._driverObj.getState()
+            
+            elif self._driver == 'binarydoor':
+                binarydoorStates = ['Open', 'Closed']
+                return binarydoorStates[super(Sensor, self).getState()]
             
             elif self._pinMode == 'gpio-in':
                 return super(Sensor, self).getState()
