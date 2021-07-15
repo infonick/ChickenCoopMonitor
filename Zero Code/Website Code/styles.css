@@ -1,0 +1,15 @@
+/* Box Shadow */
+.bxshadow {
+	box-shadow: 7px 7px 5px #AAAAAA;
+}
+
+#dropdownUserMenuButton{
+	line-height: 0;
+}
+
+
+@media screen and (max-width: 766px) {
+  #welcomeUser {
+    display: none;
+  }
+}
