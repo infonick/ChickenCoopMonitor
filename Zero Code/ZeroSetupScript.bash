@@ -104,8 +104,8 @@ read ans
 if [ "$ans" == "y"  -o  "$ans" == "Y"  -o  "$ans" == "yes"  -o  "$ans" == "YES" ]
 then
   printf "\nCopying website files...  "
-  rm /var/www/html/*
-  cp -r Website\ Code/* /var/www/html/
+  rm -r /var/www/html/*
+  sudo cp -r Website\ Code/* /var/www/html/
   printf "done.\n"
 else
   printf " ... skipped.\n"
@@ -116,7 +116,7 @@ read ans
 if [ "$ans" == "y"  -o  "$ans" == "Y"  -o  "$ans" == "yes"  -o  "$ans" == "YES" ]
 then
   printf "\nCopying database file...  "
-  cp database/CCMonitor.db /var/database/CCMonitor.db
+  sudo cp database/CCMonitor.db /var/database/CCMonitor.db
   printf "done.\n"
 else
   printf " ... skipped.\n"
