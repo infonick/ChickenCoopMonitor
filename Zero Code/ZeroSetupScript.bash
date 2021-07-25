@@ -164,8 +164,8 @@ then
   echo "Backup of cron configuration saved to $filename ."
   printf "Setting up crontab with new jobs...  "
   crontab -l > crontab_new.txt
-  echo "@reboot python3 $PWD/Business\ Logic/Pi\ Zero\ Bsiness\ Logic.py &" >> crontab_new.txt
-  echo "@reboot python3 $PWD/Business\ Logic/picam.py &" >> crontab_new.txt
+  echo "@reboot python3 $HOME/ChickenCoopMonitor/Zero\ Code/Business\ Logic/Pi\ Zero\ Bsiness\ Logic.py" >> crontab_new.txt
+  echo "@reboot python3 $HOME/ChickenCoopMonitor/Zero\ Code/Business\ Logic/picam.py" >> crontab_new.txt
   crontab crontab_new.txt
   rm crontab_new.txt
   printf "done.\n"
@@ -206,9 +206,9 @@ sudo bash -c "$set_config_var_declared; set_config_var disable_camera_led $CAMER
 
 
 # Set up UART with PL011 for best reliability - requires disabling bluetooth.
-# dtoverlay=disable-bt  #disabled bluetooth in config.txt
-# enable_uart=1         #enables uart communication
-# sudo systemctl disable hciuart #also required.
+# dtoverlay=disable-bt             # Disables bluetooth in config.txt
+# enable_uart=1                    # Enables uart communication
+# sudo systemctl disable hciuart   # Also required to disable bluetooth and set up UART.
 printf "Setting up UART with PL011 for best reliability (NOTE: this requires disabling bluetooth)... "
 if ! grep "dtoverlay=disable-bt" $RPI_CFG_FILE
 then
