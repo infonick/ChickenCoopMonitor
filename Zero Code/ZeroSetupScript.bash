@@ -72,8 +72,9 @@ sudo apt upgrade -y
 echo "Installing any missing dependencies"
 sudo apt install git -y
 sudo apt install apache2 -y
-sudo apt install php libapache2-mod-php -y
+sudo apt install php7.3 libapache2-mod-php -y
 sudo apt install sqlite3 -y
+sudo apt install php7.3-sqlite
 sudo apt install python3 -y
 sudo apt install python-picamera python3-picamera -y
 sudo apt install python-gpiozero python3-gpiozero -y
@@ -93,6 +94,32 @@ if ! id -nGz "$USER" | grep -qzxF www-data
 then
     echo "Adding user '$USER' to the 'www-data' group."
     sudo usermod -aG www-data $USER
+fi
+
+
+
+# Copy database and website files
+printf "Copy and overwrite website files in /var/www/html/? (y/n) "
+read ans
+if [ "$ans" == "y"  -o  "$ans" == "Y"  -o  "$ans" == "yes"  -o  "$ans" == "YES" ]
+then
+  printf "\nCopying website files...  "
+  rm /var/www/html/*
+  cp -r Website\ Code/* /var/www/html/
+  printf "done.\n"
+else
+  printf " ... skipped.\n"
+fi
+
+printf "Copy and overwrite database in /var/database/? (y/n) "
+read ans
+if [ "$ans" == "y"  -o  "$ans" == "Y"  -o  "$ans" == "yes"  -o  "$ans" == "YES" ]
+then
+  printf "\nCopying database file...  "
+  cp database/CCMonitor.db /var/database/CCMonitor.db
+  printf "done.\n"
+else
+  printf " ... skipped.\n"
 fi
 
 
@@ -120,34 +147,11 @@ sudo find /var/www/html -type f -exec chmod u+rw {} +
 sudo find /var/www/html -type d -exec chmod g+s {} +
 
 
-# Copy database and website files
-printf "Copy and overwrite website files in /var/www/html/? (y/n) "
-read ans
-if [ "$ans" == "y"  -o  "$ans" == "Y"  -o  "$ans" == "yes"  -o  "$ans" == "YES" ]
-then
-  printf "\nCopying website files...  "
-  rm /var/www/html/*
-  cp -r Website\ Code/* /var/www/html/
-  printf "done.\n"
-else
-  printf " ... skipped.\n"
-fi
-
-printf "Copy and overwrite database in /var/database/? (y/n) "
-read ans
-if [ "$ans" == "y"  -o  "$ans" == "Y"  -o  "$ans" == "yes"  -o  "$ans" == "YES" ]
-then
-  printf "\nCopying database file...  "
-  cp database/CCMonitor.db /var/database/CCMonitor.db
-  printf "done.\n"
-else
-  printf " ... skipped.\n"
-fi
-
 # Remove permissions for 'other' users
 echo "Removing extraneous permissions for 'other' users in /var/www/html/ and /var/database/."
 sudo chmod -R o-rwx /var/www/html/
 sudo chmod -R o-rwx /var/database/
+
 
 # Setup cron autostart for business logic and webcam python scripts
 printf "Set up cron to automatically start python files for Pi Camera and Business Logic? (y/n) "
