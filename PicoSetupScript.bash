@@ -13,7 +13,7 @@ sudo apt install python3 -y
 sudo apt install python3-pip -y
 sudo pip3 install rshell
 
-# Check that user belongs to dialout group.
+# Check that user belongs to dialout group for serial communication.
 if ! id -nGz "$USER" | grep -qzxF dialout
 then
     printf "Adding user '$USER' to the 'dialout' group... ${RED}"
@@ -23,5 +23,11 @@ fi
 
 
 printf "Copying files to Pi Pico... \n"
-sudo find $HOME/ChickenCoopMonitor/Pico\ Code/ -type d -exec rshell cp {} +
-sudo find $HOME/ChickenCoopMonitor/Pico\ Code/ -type f -exec rshell cp {} +
+cd $HOME/ChickenCoopMonitor/Pico\ Code/
+rshell cp -r * /pyboard/
+printf "Copying complete. \n"
+
+printf "Resetting the Raspberry Pi Pico... ${RED}"
+rshell repl ~ import machine ~ machine.soft_reset()~
+printf "${NC}done.\n"
+
