@@ -76,9 +76,11 @@ sudo apt install php7.3 libapache2-mod-php -y
 sudo apt install sqlite3 -y
 sudo apt install php7.3-sqlite
 sudo apt install python3 -y
+sudo apt install python3-pip -y
 sudo apt install python-picamera python3-picamera -y
 sudo apt install python-gpiozero python3-gpiozero -y
 sudo apt install python-serial python3-serial -y #not sure what the correct one is for pyserial
+sudo pip3 install rshell
 
 
 # Create the database folder if required
@@ -96,6 +98,12 @@ then
     sudo usermod -aG www-data $USER
 fi
 
+# Check that user belongs to dialout group.
+if ! id -nGz "$USER" | grep -qzxF dialout
+then
+    echo "Adding user '$USER' to the 'dialout' group."
+    sudo usermod -aG dialout $USER
+fi
 
 
 # Copy database and website files
