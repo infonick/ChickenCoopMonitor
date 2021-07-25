@@ -51,23 +51,23 @@ set_config_var_declared=$(declare -f set_config_var)
 # -------------------------------------------------------------
 # Begin Script
 # -------------------------------------------------------------
-RED='\033[0;31m'
-NC='\033[0m' # No Color
+RED='\033[0;31m' # Red Text Color
+NC='\033[0m' # No Text Color
 echo This script installs the Chicken Coop Monitor on a Raspberry Pi Zero W. It is not tested with any other Raspberry Pi version.
 printf "${RED}The script makes extensive use of the \'sudo\' command in order to complete the installation and many changes will be made to your system.${NC}\n"
-echo '----------------------'
-echo Do you wish to proceed with the installation? (y/n) 
+echo "----------------------"
+echo "Do you wish to proceed with the installation? (y/n) "
 read ans
 if [ "$ans" != "y"  -a  "$ans" != "Y"  -a  "$ans" != "yes"  -a  "$ans" != "YES" ]
 then
-  echo Exiting..
+  echo "Exiting.."
   exit
 fi
 
 
 
 
-echo Installing any missing dependencies
+echo "Installing any missing dependencies"
 
 sudo apt update -y
 sudo apt upgrade -y
@@ -84,7 +84,7 @@ sudo apt install python-serial python3-serial -y #not sure what the correct one 
 # Create the database folder if required
 if [ ! -d /var/database]
 then 
-  echo Creating database folder at /var/database
+  echo "Creating database folder at /var/database"
   sudo mkdir /var/database
 fi
 
@@ -92,13 +92,13 @@ fi
 # Check that user belongs to www-data group. Borrowed from https://stackoverflow.com/a/46651233
 if ! id -nGz "$USER" | grep -qzxF www-data
 then
-    echo Adding user $USER to the \'www-data\' group.
+    echo "Adding user '$USER' to the 'www-data' group."
     sudo usermod -aG www-data $USER
 fi
 
 
 # Refresh folder permissions, as per https://itectec.com/ubuntu/ubuntu-permissions-problems-with-var-www-html-and-the-own-home-directory-for-a-website-document-root/
-echo Setting permissions for /var/database
+echo "Setting permissions for /var/database"
 sudo chgrp -R www-data /var/database
 sudo find /var/database -type d -exec chmod g+rwx {} +
 sudo find /var/database -type f -exec chmod g+rw {} +
@@ -109,7 +109,7 @@ sudo find /var/database -type f -exec chmod u+rw {} +
 
 sudo find /var/database -type d -exec chmod g+s {} +
 
-echo Setting permissions for /var/www/html
+echo "Setting permissions for /var/www/html"
 sudo chgrp -R www-data /var/www/html
 sudo find /var/www/html -type d -exec chmod g+rx {} +
 sudo find /var/www/html -type f -exec chmod g+r {} +
@@ -122,7 +122,7 @@ sudo find /var/www/html -type d -exec chmod g+s {} +
 
 
 # Copy database and website files
-printf 'Copy and overwrite website files in /var/www/html/? (y/n) '
+printf "Copy and overwrite website files in /var/www/html/? (y/n) "
 read ans
 if [ "$ans" == "y"  -o  "$ans" == "Y"  -o  "$ans" == "yes"  -o  "$ans" == "YES" ]
 then
@@ -133,7 +133,7 @@ else
   printf " ... skipped.\n"
 fi
 
-printf 'Copy and overwrite database in /var/database/? (y/n) '
+printf "Copy and overwrite database in /var/database/? (y/n) "
 read ans
 if [ "$ans" == "y"  -o  "$ans" == "Y"  -o  "$ans" == "yes"  -o  "$ans" == "YES" ]
 then
@@ -145,7 +145,7 @@ else
 fi
 
 # Remove permissions for 'other' users
-echo Removing permissions for \'other\' users in /var/www/html/ and /var/database/.
+echo "Removing extraneous permissions for 'other' users in /var/www/html/ and /var/database/."
 sudo chmod -R o-rwx /var/www/html/
 sudo chmod -R o-rwx /var/database/
 
@@ -157,7 +157,7 @@ then
   filename="crontab_backup_$(date +'%s').txt"
   crontab -l > $filename #create backup of existing crontab configuration
   printf "\n"
-  echo backup of cron configuration saved to $filename
+  echo "Backup of cron configuration saved to $filename ."
   printf "Setting up crontab with new jobs...  "
   crontab -l > crontab_new.txt
   echo "@reboot python3 $PWD/Business\ Logic/Pi\ Zero\ Bsiness\ Logic.py &" >> crontab_new.txt
@@ -191,7 +191,7 @@ then
 fi
 printf "done.\n"
 
-echo 'Disable Pi Camera LED? (y/n) '
+echo "Disable Pi Camera LED? (y/n) "
 read ans
 if [ "$ans" == "y"  -o  "$ans" == "Y"  -o  "$ans" == "yes"  -o  "$ans" == "YES" ]
 then
@@ -220,9 +220,9 @@ printf "done.\n"
 # -------------------------------------------------------------
 # -------------------------------------------------------------
 echo "*************************************************"
-echo Setup script is complete. Please note: it is recommended that you enable SSH for headless installations.
+echo "Setup script is complete. Please note: it is recommended that you enable SSH for headless installations."
 
-echo 'Reboot now to complete installation? (y/n) '
+echo "Reboot now to complete installation? (y/n) "
 read ans
 if [ "$ans" == "y"  -o  "$ans" == "Y"  -o  "$ans" == "yes"  -o  "$ans" == "YES" ]
 then
@@ -230,5 +230,3 @@ then
 fi
 
 exit
-
-#edit php.ini?
