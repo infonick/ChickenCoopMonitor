@@ -28,6 +28,6 @@ rshell cp -r * /pyboard/
 printf "Copying complete. \n"
 
 printf "Resetting the Raspberry Pi Pico... ${RED}"
-rshell repl ~ import machine ~ machine.soft_reset()~
+rshell repl "~ import machine ~ machine.soft_reset()~"
 printf "${NC}done.\n"
 
