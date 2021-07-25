@@ -6,8 +6,8 @@
 #     __sensorDrivers = ['none', 'dht22']
 
 sensors = [{'pinNum':  8, 'pinMode':'gpio-in', 'gpioInType':'down', 'irq':'all', 'driver':'binarydoor', 'convFactorADC':None, 'name':'Man Door 1'},
-           {'pinNum':  9, 'pinMode':'gpio-in', 'gpioInType':'down', 'irq':'all', 'driver':'binarydoor', 'convFactorADC':None, 'name':'Man Door 2'},
-           {'pinNum': 10, 'pinMode':'gpio-in', 'gpioInType':'down', 'irq':'all', 'driver':'binarydoor', 'convFactorADC':None, 'name':'Man Door 3'},
+         # {'pinNum':  9, 'pinMode':'gpio-in', 'gpioInType':'down', 'irq':'all', 'driver':'binarydoor', 'convFactorADC':None, 'name':'Man Door 2'},
+         # {'pinNum': 10, 'pinMode':'gpio-in', 'gpioInType':'down', 'irq':'all', 'driver':'binarydoor', 'convFactorADC':None, 'name':'Man Door 3'},
            {'pinNum': 11, 'pinMode':'gpio-in', 'gpioInType':'down', 'irq':'all', 'driver':'binarydoor', 'convFactorADC':None, 'name':'Egg Box Door'},
            {'pinNum': 12, 'pinMode':'gpio-in', 'gpioInType':'down', 'irq':'all', 'driver':'slidingdoor', 'convFactorADC':None, 'name':'Chicken Door'},
          # Pin 13 is automatically used in conjuction with Pin 12 to provide a sliding door with two sensors
