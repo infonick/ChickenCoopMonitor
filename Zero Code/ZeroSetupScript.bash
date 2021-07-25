@@ -65,12 +65,11 @@ then
 fi
 
 
-
-
-echo "Installing any missing dependencies"
-
+echo "Updating the system software..."
 sudo apt update -y
 sudo apt upgrade -y
+
+echo "Installing any missing dependencies"
 sudo apt install git -y
 sudo apt install apache2 -y
 sudo apt install php libapache2-mod-php -y
@@ -82,7 +81,7 @@ sudo apt install python-serial python3-serial -y #not sure what the correct one 
 
 
 # Create the database folder if required
-if [ ! -d /var/database]
+if [ ! -d /var/database ]
 then 
   echo "Creating database folder at /var/database"
   sudo mkdir /var/database
@@ -127,7 +126,8 @@ read ans
 if [ "$ans" == "y"  -o  "$ans" == "Y"  -o  "$ans" == "yes"  -o  "$ans" == "YES" ]
 then
   printf "\nCopying website files...  "
-  cp Website\ Code/* /var/www/html/
+  rm /var/www/html/*
+  cp -r Website\ Code/* /var/www/html/
   printf "done.\n"
 else
   printf " ... skipped.\n"
