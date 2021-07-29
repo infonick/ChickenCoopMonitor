@@ -4,7 +4,7 @@ A microcontroller and interface to provide a variety of sensor readings of a chi
 <br>
 
 ## Folders
- - **Docs:** installation and user manual  
+ - **Docs:** installation and user manual (includes wiring diagrams)  
  - **Pico Code:** code for a Raspberry Pi Pico  
  - **Zero Code:** code for a Raspberry Pi Zero W  
   
