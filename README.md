@@ -8,7 +8,7 @@ A microcontroller and interface to provide a variety of sensor readings of a chi
   
 
 
-
+```
                . .
               /|/|/\
             /V ____/
@@ -60,4 +60,4 @@ A microcontroller and interface to provide a variety of sensor readings of a chi
                        HH/    \HH.
                      .’H/        ‘-‘
                     ==’
-
+```
